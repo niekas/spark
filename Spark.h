@@ -21,22 +21,17 @@ class Spark : public Algorithm {
     Spark(const Spark& other) {};
     Spark& operator=(const Spark& other) {};
 public:
-    Spark(int max_calls=15000, double max_duration=3600, double epsilon=0.0001) {
+    Spark(int max_calls=15000, double max_duration=3600) {
         // _max_diff_verts_to_be_neighbour = 2;     // Max number of different verts to still be a neighbour
         _min_same_verts_to_be_neighbour = 1;     // Max number of different verts to still be a neighbour
         _stop_criteria = "x_dist_Serg";          // Stopping criteria
 
-        _epsilon = epsilon;                      // Solution accuracy
         _max_calls = max_calls;
         _max_duration = max_duration;
 
         _iteration = 0;         // Algorithm iteration for debuging purposes
 
-        // Construct algorithm name
         _name = "Spark";
-        stringstream alg_name; 
-        alg_name << _name << "_e" << epsilon;  
-        _name =  alg_name.str();
 
         // Clean partition log file
         ofstream log_file; 

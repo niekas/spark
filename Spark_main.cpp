@@ -9,10 +9,6 @@
 #define required_argument 1
 #define optional_argument 2
 
-//// Multicriteria convex-hull-from-best 2-diff-vertexes-neighbours (bulk-elbme)
-// Note: Ši algoritmo realizacija skirta tik dviejų kriterijų problemų optimizavimui
-//       nes kai kurie realizacijos sprendimai tinka tik dviejų kriterijų problemoms. 
-
 
 using namespace std;
 
@@ -82,8 +78,7 @@ int main(int argc, char* argv[]) {
     if (alg->_status == "S") { cout << "  -->> Suspended <<--" << endl; }
     cout << "Calls: " << funcs[0]->_calls 
          << ", status: " << alg->_status  
-         << ", duration: " << alg->_duration  
-         << ", subregions: " << alg->_partition.size() << endl;  
+         << ", duration: " << alg->_duration << endl;
 
     for (int i=0; i < funcs.size(); i++) {
         cout.precision(10);
@@ -100,16 +95,13 @@ int main(int argc, char* argv[]) {
         cmd_ss.precision(10);
         cmd_ss << callback
                << " --calls=" << funcs[0]->_calls
-               << " --subregions=" << alg->_partition.size()
                << " --duration=" << alg->_duration
                << " --task_id=" << task_id
                << " --status=" << alg->_status
                << " --x_min=" << *funcs[0]->_x_min
                << " --f_min=" << funcs[0]->_f_min
-               << " --global_L=" << Simplex::glob_Ls[0]
                << " --min_diam=" << alg->_partition[0]->_diameter
                << " --max_diam=" << alg->_partition[alg->_partition.size() - 1]->_diameter
-               << " --nelder_mead_max_iters=" << NelderMead::_max_iteration
                << " -exe=" << argv[0] << endl;
         cmd = cmd_ss.str();
         popen(cmd.c_str(), "r");
