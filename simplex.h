@@ -8,15 +8,6 @@
 using namespace std;
 
 
-enum LowerBoundStrategy { MinVert, LongestEdgeLB, LowestEdgeLB, All };
-const char* LBS[] = { "Min vert", "Longest edge LB", "Lowest edge LB", "All", 0 };
-enum LStrategy { Self, Neighbours };
-const char* LS[] = { "Self", "Neighbours", 0 };
-enum DivisionStrategy { LongestHalf };
-const char* DS[] = { "Longest Half", 0 };
-enum SimplexGradientStrategy { FFMinVert, FFMaxVert, FFAllVertMean };
-const char* SGS[] = { "FF min vert", "FF max vert", "FF all vert mean", 0 };   // "All vert max" should match "Max vert"
-
 class SimplexTree;
 class SimplexTreeNode;
 
@@ -25,13 +16,7 @@ class Simplex {  // Designed for outer problems
     Simplex(const Simplex& other){}
     Simplex& operator=(const Simplex& other){}
 public:
-    Simplex(LowerBoundStrategy lower_bound_strategy,
-            LStrategy L_strategy,
-            SimplexGradientStrategy simplex_gradient_strategy
-        ) {
-        _lower_bound_strategy = lower_bound_strategy;
-        _L_strategy = L_strategy;
-        _simplex_gradient_strategy = simplex_gradient_strategy;
+    Simplex() {
         _is_in_partition = true;
         _diameter = 0;
         _tolerance = 0;
@@ -47,10 +32,6 @@ public:
         // _min_lb_value = 0;
         _D = 0;
     };
-
-    LowerBoundStrategy _lower_bound_strategy;
-    LStrategy _L_strategy;
-    SimplexGradientStrategy _simplex_gradient_strategy;
 
     int _D;                       // Variable space dimension
     int _C;                       // Criteria (objective function) space dimension
@@ -121,7 +102,7 @@ public:
         // };
 
         for (int i=0; i < funcs.size(); i++) {
-            _grad_norms[i] = find_simplex_gradient_norm(i, _simplex_gradient_strategy);      // Check in the article if global Lipschitz constant is defined
+            _grad_norms[i] = find_simplex_gradient_norm(i);      // Check in the article if global Lipschitz constant is defined
 
            //// Update global Ls
            if (Simplex::glob_Ls.size() < funcs.size()) {
@@ -156,7 +137,7 @@ public:
 
     static void update_estimates(vector<Simplex*> simpls, vector<Function*> funcs, vector<Point*> pareto_front, int iteration);
 
-    double find_simplex_gradient_norm(int crit_id, SimplexGradientStrategy simplex_gradient_strategy){ 
+    double find_simplex_gradient_norm(int crit_id){ 
         double L_estimate = 0;
         // Eigen::VectorXd f_diff(_D);
         // Eigen::MatrixXd x_diff(_D, _D);
@@ -384,42 +365,32 @@ public:
                               vector<Simplex*> selected,
                               string label="Partition:",
                               int iteration=0) {
-       ofstream log_file; 
-       log_file.open("log/partition.txt");
-       log_file.close();
-       log_file.open("log/partition.txt", ios::app);
-       log_file << label << iteration << ":" << endl;
-       for (int i=0; i < simplexes.size(); i++) {
+        ofstream log_file; 
+        log_file.open("log/partition.txt");
+        log_file.close();
+        log_file.open("log/partition.txt", ios::app);
+        log_file << label << iteration << ":" << endl;
+        for (int i=0; i < simplexes.size(); i++) {
            for (int j=0; j < simplexes[i]->_verts.size(); j++) {
                for (int k=0; k < simplexes[i]->_verts[j]->size(); k++){
                     log_file << simplexes[i]->_verts[j]->_X[k] << " ";
                };
                log_file << " (" << simplexes[i]->_verts[j]->_values[0]<<"); ";
            };
-           if (simplexes[i]->_L_strategy == Self) {
-                log_file << " ("<< simplexes[i]->_diameter << "," << simplexes[i]->_tolerance << ")" << endl;
-           };
-           if (simplexes[i]->_L_strategy == Neighbours) {
-                log_file << " ("<< simplexes[i]->_diameter << "," << simplexes[i]->_tolerance << ")" << endl;
-           };
-       };
-       log_file << "Selected:" << endl;
-       for (int i=0; i < selected.size(); i++) {
-           for (int j=0; j < selected[i]->_verts.size(); j++) {
-               for (int k=0; k < selected[i]->_verts[j]->size(); k++){
-                    log_file << selected[i]->_verts[j]->_X[k] << " ";
-               };
-               log_file << " (" << selected[i]->_verts[j]->_values[0]<<"); ";
-           };
-           if (selected[i]->_L_strategy == Self) {
-               log_file << " ("<< selected[i]->_diameter << "," << selected[i]->_tolerance << ")" << endl;
-           };
-           if (selected[i]->_L_strategy == Neighbours) {
-               log_file << " ("<< selected[i]->_diameter << "," << selected[i]->_tolerance << ")" << endl;
-           };
-       };
+            log_file << " ("<< simplexes[i]->_diameter << "," << simplexes[i]->_tolerance << ")" << endl;
+        };
+        log_file << "Selected:" << endl;
+        for (int i=0; i < selected.size(); i++) {
+            for (int j=0; j < selected[i]->_verts.size(); j++) {
+                for (int k=0; k < selected[i]->_verts[j]->size(); k++){
+                     log_file << selected[i]->_verts[j]->_X[k] << " ";
+                };
+                log_file << " (" << selected[i]->_verts[j]->_values[0]<<"); ";
+            };
+            log_file << " ("<< selected[i]->_diameter << "," << selected[i]->_tolerance << ")" << endl;
+        };
 
-       log_file.close();
+        log_file.close();
     };
 
     virtual ~Simplex(){

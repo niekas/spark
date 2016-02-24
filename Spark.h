@@ -22,12 +22,8 @@ class Spark : public Algorithm {
     Spark& operator=(const Spark& other) {};
 public:
     Spark(int max_calls=15000, double max_duration=3600, double epsilon=0.0001) {
-        _lower_bound_strategy = LowestEdgeLB;    // Lowest edge is determined by optimising
-        _L_strategy = Neighbours;                // Simplex region to get max L from 
         // _max_diff_verts_to_be_neighbour = 2;     // Max number of different verts to still be a neighbour
         _min_same_verts_to_be_neighbour = 1;     // Max number of different verts to still be a neighbour
-        _division_strategy = LongestHalf;        // Simplex division strategy - longest into two parts
-        _simplex_gradient_strategy = FFMinVert;  // Single simplex L determination strategy (grad norm) 
         _stop_criteria = "x_dist_Serg";          // Stopping criteria
 
         _epsilon = epsilon;                      // Solution accuracy
@@ -80,7 +76,7 @@ public:
                 triangle[vertex + 1][teta[vertex]] = 1;
             }
 
-            Simplex* simpl = new Simplex(_lower_bound_strategy, _L_strategy, _simplex_gradient_strategy);
+            Simplex* simpl = new Simplex();
             for (int i=0; i < n + 1; i++){
                 Point* tmp_point = new Point(triangle[i], n);
                 
@@ -422,8 +418,8 @@ public:
             };
 
             // Construct two new simplexes using this middle point.
-            Simplex* left_simplex = new Simplex(_lower_bound_strategy, _L_strategy, _simplex_gradient_strategy);
-            Simplex* right_simplex = new Simplex(_lower_bound_strategy, _L_strategy, _simplex_gradient_strategy);
+            Simplex* left_simplex = new Simplex();
+            Simplex* right_simplex = new Simplex();
 
             for (int i=0; i < simplex->size(); i++){
                 // Point* point = _func->get(new Point(triangle[i], n)); 
