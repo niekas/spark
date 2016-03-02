@@ -4,6 +4,7 @@
 #include "Spark.h"
 #include <stdio.h>
 #include <fstream>
+#include "Eigen/Dense"
 
 #define no_argument 0
 #define required_argument 1
@@ -61,32 +62,29 @@ int main(int argc, char* argv[]) {
     };
 
     // Put function vector in order to be able to use more than 2 functions in the future
-    vector<Function*> funcs;
-    funcs.push_back(new GKLSFunction(cls, fid));
+    Function* func = new GKLSFunction(cls, fid);
 
     Spark* alg;
     alg = new Spark(max_calls, max_duration);
 
-    if (glob_L != numeric_limits<double>::max()) {
-        Simplex::glob_Ls.push_back(glob_L);
-    };
+    // if (glob_L != numeric_limits<double>::max()) {
+    //     Simplex::glob_Ls.push_back(glob_L);
+    // };
 
-    alg->minimize(funcs);
+    alg->minimize(func);
 
     // Print results
     cout << "Cls: " << cls << "  Fid: " << fid << endl;
     if (alg->_status == "S") { cout << "  -->> Suspended <<--" << endl; }
-    cout << "Calls: " << funcs[0]->_calls 
+    cout << "Calls: " << func->_calls 
          << ", status: " << alg->_status  
          << ", duration: " << alg->_duration << endl;
 
-    for (int i=0; i < funcs.size(); i++) {
-        cout.precision(10);
-        cout << "Solution for criteria " << i + 1 << ":" << endl;
-        funcs[i]->_x_nearest_to_glob_x->print();
-        cout << "   Global minima for criteria " << i + 1 << ":" << endl;
-        funcs[i]->_glob_x->print();
-    };
+    cout.precision(10);
+    cout << "Solution:" << endl;
+    func->_x_nearest_to_glob_x->print();
+    cout << "   Global minima:" << endl;
+    func->_glob_x->print();
 
     // Save results
     if (callback != '\0') {
@@ -94,12 +92,12 @@ int main(int argc, char* argv[]) {
         stringstream cmd_ss; 
         cmd_ss.precision(10);
         cmd_ss << callback
-               << " --calls=" << funcs[0]->_calls
+               << " --calls=" << func->_calls
                << " --duration=" << alg->_duration
                << " --task_id=" << task_id
                << " --status=" << alg->_status
-               << " --x_min=" << *funcs[0]->_x_min
-               << " --f_min=" << funcs[0]->_f_min
+               << " --x_min=" << *func->_x_min
+               << " --f_min=" << func->_f_min
                << " --min_diam=" << alg->_partition[0]->_diameter
                << " --max_diam=" << alg->_partition[alg->_partition.size() - 1]->_diameter
                << " -exe=" << argv[0] << endl;
@@ -109,10 +107,6 @@ int main(int argc, char* argv[]) {
 
     // Free memory
     delete alg;
-
-    for (int i=0; i < funcs.size(); i++) {
-        delete funcs[i];
-    };
-    funcs.clear();
+    delete func;
     return 0;
 };

@@ -27,50 +27,156 @@ public:
     Point(int D){
         _D = D;
         _X = (double*) malloc((D)*sizeof(double));
+        _dims_divided = (bool*) malloc((D)*sizeof(bool));
+        reset_dims_divided();
+        _should_be_divided = false;
     };
     Point(int *c, int argc){
         _D = argc;
         _X = (double*) malloc((argc)*sizeof(double));
+        _dims_divided = (bool*) malloc((argc)*sizeof(bool));
+        reset_dims_divided();
         for (int i=0; i<argc ; i++){
             _X[i] = double(c[i]);
         };
+        _should_be_divided = false;
     };
     Point(double *c, int argc){
         _D = argc;
         _X = (double*) malloc((argc)*sizeof(double));
+        _dims_divided = (bool*) malloc((argc)*sizeof(bool));
+        reset_dims_divided();
         for (int i=0; i<argc ; i++){
             _X[i] = c[i];
         };
+        _should_be_divided = false;
     };
     Point(double c, int argc){
         _D = argc;
         _X = (double*) malloc((argc)*sizeof(double));
+        _dims_divided = (bool*) malloc((argc)*sizeof(bool));
+        reset_dims_divided();
         for (int i=0; i<argc ; i++){
             _X[i] = c;
         };
+        _should_be_divided = false;
     };
     Point(double c1, double c2){
         _D = 2;
         _X = (double*) malloc(2*sizeof(double));
+        _dims_divided = (bool*) malloc(2*sizeof(bool));
+        reset_dims_divided();
         _X[0] = c1;
         _X[1] = c2;
+        _should_be_divided = false;
     };
 
     int _D;
     double* _X;  // Coordinates in normalised [0,1]^n space  
     vector<double> _values;
-    vector<Simplex*> _simplexes;  // Simplexes, which have this point as vertex
+    double _diameter;
+    double _min_edge;
+    double _max_edge_length;
+    bool* _dims_divided;
+    bool _should_be_divided;
+    // bool is_divided; // Whether this point was fully divided
+
+    void reset_dims_divided() {
+        for (int i=0; i < _D; i++) {
+            _dims_divided[i] = false;
+        };
+    };
+
+    void set_divided_dim(int dimension) {
+        _dims_divided[dimension] = true;
+        update_diameter();
+        for (int i=0; i < _D; i++) {
+            if (_dims_divided[i] == false) {
+                return;
+            };
+        };
+
+        // All dims were divided
+        _max_edge_length = _max_edge_length / 3.;
+        reset_dims_divided();
+        update_diameter();
+    };
+
+    void update_diameter() {
+        double sq_sum = 0;
+        for (int i=0; i < _D; i++) {
+            if (_dims_divided[i] == false) {
+                sq_sum += _max_edge_length * _max_edge_length;
+            } else {
+                sq_sum += (_max_edge_length / 3.) * (_max_edge_length / 3.);
+            };
+        };
+        _diameter = sqrt(sq_sum);
+    };
+
+    Point* dublicate() {
+        Point* new_point = new Point(_D);
+        for (int i=0; i < _D; i++) {
+            new_point->_X[i] = _X[i];
+            new_point->_dims_divided[i] = _dims_divided[i];
+        };
+        new_point->_diameter = _diameter;
+        new_point->_min_edge = _min_edge;    // Are these used at all?
+        new_point->_max_edge_length = _max_edge_length;
+        return new_point;
+    };
          
     void add_value(double value) {
         _values.push_back(value);
     };
 
-    Point* copy() {
-        Point* point_copy = new Point(_X, _D);
-        for (int i=0; i < _values.size(); i++) {
-            point_copy->add_value(_values[i]);
+    // Point* copy() {
+    //     Point* point_copy = new Point(_X, _D);
+    //     for (int i=0; i < _values.size(); i++) {
+    //         point_copy->add_value(_values[i]);
+    //     };
+    //     return point_copy;
+    // };
+
+    static double ascending_diameter(Point* p1, Point* p2) {
+        return p1->_diameter < p2->_diameter;
+    };
+
+    static bool wont_be_divided(Point* p) {
+        return !p->_should_be_divided;
+    };
+
+    static void log_partition(vector<Point*> points,
+                              // vector<Point*> selected,
+                              int iteration=0) {
+        ofstream log_file; 
+        log_file.open("log/partition.txt");
+        log_file.close();
+        log_file.open("log/partition.txt", ios::app);
+        // log_file << iteration << ":" << endl;
+        for (int i=0; i < points.size(); i++) {
+            points[i]->print();
+            for (int j=0; j < points[i]->_D; j++){
+                log_file << points[i]->_X[j] << "  \t";
+            };
+            for (int j=0; j < points[i]->_values.size(); j++){
+                if (j == 0) { log_file << "->\t"; };
+                log_file << points[i]->_values[j] << "  \t";
+            };
+            log_file << endl;
         };
-        return point_copy;
+        // log_file << "Selected:" << endl;
+        // for (int i=0; i < selected.size(); i++) {
+        //     for (int i=0; i < selected[i]->_D; i++){
+        //         log_file << selected[i]->_X[i] << "  \t";
+        //     };
+        //     for (int i=0; i < selected[i]->_values.size(); i++){
+        //         if (i == 0) { cout << "->\t"; };
+        //         log_file << selected[i]->_values[i] << "  ";
+        //     };
+        //     log_file << endl;
+        // };
+        log_file.close();
     };
 
     int size(){
@@ -87,7 +193,7 @@ public:
     void print(){
         // cout.precision(17);
         cout << "       ";
-        for (int i=0; i < size(); i++){
+        for (int i=0; i < _D; i++){
             // cout << fixed << _X[i] << "  \t";
             cout << _X[i] << "  \t";
         };
@@ -96,6 +202,11 @@ public:
             // cout << fixed << _values[i] << "  ";
             cout << _values[i] << "  ";
         };
+        cout << " (diam: " << _diameter << ") (";
+        for (int i=0; i < _D; i++){
+            cout << _dims_divided[i];
+        };
+        cout << ")";
         cout << endl;
     };
 
@@ -113,6 +224,7 @@ public:
 
     virtual ~Point(){
         free(_X);
+        free(_dims_divided);
         vector<double>::iterator vit = _values.begin();
         while (vit != _values.end()) {
             vit = _values.erase(vit);    
